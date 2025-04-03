@@ -40,3 +40,6 @@ cmake_install.cmake
 # For Windows, ignore Thumbs.db and desktop.ini
 Thumbs.db
 desktop.ini
+
+# For Mac, ignore .DS_Store
+.DS_Store

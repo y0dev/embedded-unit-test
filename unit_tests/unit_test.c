@@ -5,6 +5,8 @@
 #include "registers.h"
 #include "gpio.h"
 #include "external_communication.h"
+#include "mailbox.h"
+#include "interrupt.h"
 
 int totalTested = 0;
 int totalPassed = 0;
@@ -20,6 +22,19 @@ void run_tests(void)
     test_register_operations();
     test_gpio_operations();
     test_external_communication();
+
+
+    printf("Running interrupt tests...\n");
+    // test_interrupt_handler();
+    // test_handler_with_irq_capture();
+
+    test_interrupt_enable_disable();
+    test_register_and_trigger_interrupt();
+    test_interrupt_handler_switching();
+    test_invalid_interrupts_are_ignored();
+    printf("Interrupt tests complete.\n");
+
+    test_mock_mailbox_send_receive_struct();
 }
 
 void print_test_results(void)

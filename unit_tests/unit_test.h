@@ -124,9 +124,8 @@ extern int totalFailed;
     {                                                                              \
         totalTested++;                                                             \
         float _x = (float)(x);                                                     \
-        float _y = (float)(y);                                                     \
-        float _diff = (_x > _y) ? (_x - _y) : (_y - _x);                           \
-        if (!(op == == && _diff <= FLOAT_TOLERANCE) && !(_x op _y))               \
+        float _y = (float)(y);                                                    \
+        if (!(_x op _y))                                                             \
         {                                                                          \
             Assert(_x op _y, ("%s " #op " %s", #x, #y),                             \
                    ("%f " #er " %f", _x, _y));                                     \
@@ -211,6 +210,21 @@ extern int totalFailed;
 #define AssertDoubleGE(x, y) AssertDouble(x, y, >=,  <)
 #define AssertDoubleLE(x, y) AssertDouble(x, y, <=,  >)
 
+
+#define AssertStr(x, y, op, er) do {                                           \
+    const char* _x = (const char*)(x);                                         \
+    const char* _y = (const char*)(y);                                         \
+    int         _z = (_x && _y) ? strcmp(_x, _y) : -1;                         \
+    Assert(_z op 0, ("%s " #op " %s", #x, #y),                                 \
+                                            ("\"%s\" " #er " \"%s\"", _x, _y));\
+} while(0)
+
+#define AssertStrEQ(x, y) AssertStr(x, y, ==, !=)
+#define AssertStrNE(x, y) AssertStr(x, y, !=, ==)
+#define AssertStrGT(x, y) AssertStr(x, y,  >, <=)
+#define AssertStrLT(x, y) AssertStr(x, y,  <, >=)
+#define AssertStrGE(x, y) AssertStr(x, y, >=,  <)
+#define AssertStrLE(x, y) AssertStr(x, y, <=,  >)
 
 void run_tests(void);
 void print_test_results(void);

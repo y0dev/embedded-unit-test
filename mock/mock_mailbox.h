@@ -29,7 +29,7 @@
   * @param len Length of the message to send.
   * @return 0 on success, -1 if mailbox is full or error occurs.
   */
- int mock_mailbox_send(const uint8_t *msg, size_t len);
+ int mock_mailbox_send(const void *data, size_t len);
  
  /**
   * @brief Mock function to receive a message from the mailbox.
@@ -38,12 +38,7 @@
   * @param max_len Maximum buffer size to receive.
   * @return Number of bytes received, or -1 if mailbox is empty or error occurs.
   */
- int mock_mailbox_receive(uint8_t *buffer, size_t max_len);
- 
- /**
-  * @brief Mock function to clear the mailbox.
-  */
- void mock_mailbox_clear(void);
+ int mock_mailbox_receive(void *buffer, size_t max_len);
  
  #endif // MOCK_MAILBOX_H
  

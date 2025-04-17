@@ -1,4 +1,4 @@
-#include <assert.h>
+#include "unit_test.h"
 #include "mock_registers.h"
 
 /**
@@ -13,9 +13,9 @@ void test_register_operations(void) {
     mock_write_register(4, 5678);
     
     // Read from registers
-    assert(mock_read_register(2) == 1234);
-    assert(mock_read_register(4) == 5678);
+    AssertIntEQ(mock_read_register(2), 1234);
+    AssertIntEQ(mock_read_register(4), 5678);
     
     // Invalid register access test
-    assert(mock_read_register(10) == 0);  // Invalid register index
+    AssertIntEQ(mock_read_register(10), 0);  // Invalid register index
 }

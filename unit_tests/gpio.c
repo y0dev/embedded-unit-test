@@ -1,4 +1,4 @@
-#include <assert.h>
+#include "unit_test.h"
 #include "mock_gpio.h"
 
 /**
@@ -13,9 +13,9 @@ void test_gpio_operations(void) {
     mock_write_gpio(4, 0);
     
     // Read from GPIO pins
-    assert(mock_read_gpio(2) == 1);
-    assert(mock_read_gpio(4) == 0);
+    AssertIntEQ(mock_read_gpio(2), 1);
+    AssertIntEQ(mock_read_gpio(4), 0);
     
     // Invalid pin test
-    assert(mock_read_gpio(10) == 0);  // Invalid pin
+    AssertIntEQ(mock_read_gpio(10), 0);  // Invalid pin
 }

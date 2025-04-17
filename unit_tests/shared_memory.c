@@ -1,4 +1,4 @@
-#include <assert.h>
+#include "unit_test.h"
 #include "mock_shared_memory.h"
 
 /**
@@ -12,15 +12,15 @@ void test_shared_memory_operations(void) {
     unsigned char buffer[4];
     
     // Write to shared memory
-    assert(mock_write_shared_memory(100, data_to_write, sizeof(data_to_write)) == 0);
+    AssertIntEQ(mock_write_shared_memory(100, data_to_write, sizeof(data_to_write)), 0);
     
     // Read from shared memory
-    assert(mock_read_shared_memory(100, buffer, sizeof(buffer)) == 0);
-    assert(buffer[0] == 1);
-    assert(buffer[1] == 2);
-    assert(buffer[2] == 3);
-    assert(buffer[3] == 4);
+    AssertIntEQ(mock_read_shared_memory(100, buffer, sizeof(buffer)), 0);
+    AssertIntEQ(buffer[0], 1);
+    AssertIntEQ(buffer[1], 2);
+    AssertIntEQ(buffer[2], 3);
+    AssertIntEQ(buffer[3], 4);
     
     // Invalid memory access test
-    assert(mock_read_shared_memory(1024, buffer, sizeof(buffer)) == -1);  // Invalid offset
+    AssertIntEQ(mock_read_shared_memory(1024, buffer, sizeof(buffer)), -1);  // Invalid offset
 }

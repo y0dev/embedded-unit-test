@@ -7,7 +7,7 @@
  * @note The UART functions are mocked for testing purposes only.
  */
 
- #include "mock/mock_uart.h"
+ #include "mock_uart.h"
  #include <string.h>
  #include <stdio.h>
  

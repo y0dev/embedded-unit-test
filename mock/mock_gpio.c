@@ -7,7 +7,8 @@
  * @note The GPIO functions are mocked for testing purposes only.
  */
 
- #include "mock/mock_gpio.h"
+ #include "mock_gpio.h"
+ #include <stdio.h>
 
  unsigned int gpio_pins[GPIO_PIN_COUNT] = {0}; ///< Array to represent GPIO pins
  

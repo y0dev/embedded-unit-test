@@ -1,5 +1,5 @@
 #include <assert.h>
-#include "mock/mock_shared_memory.h"
+#include "mock_shared_memory.h"
 
 /**
  * @brief Unit test for shared memory operations.

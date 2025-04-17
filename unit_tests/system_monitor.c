@@ -1,5 +1,5 @@
 #include <assert.h>
-#include "mock/mock_system_monitor.h"
+#include "mock_system_monitor.h"
 
 /**
  * @brief Unit test for the mock system monitor.

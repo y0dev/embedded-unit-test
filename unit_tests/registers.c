@@ -1,5 +1,5 @@
 #include <assert.h>
-#include "mock/mock_register.h"
+#include "mock_registers.h"
 
 /**
  * @brief Unit test for register operations.

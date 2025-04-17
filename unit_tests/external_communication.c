@@ -1,5 +1,6 @@
 #include <assert.h>
-#include "mock/mock_external_communication.h"
+#include "mock_external_communication.h"
+#include <string.h>
 
 /**
  * @brief Unit test for external network communication.

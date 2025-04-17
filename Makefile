@@ -1,6 +1,6 @@
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Werror -I./include -g
+CFLAGS = -Wall -Werror -I./mock -I./unit_tests -g
 LDFLAGS =
 
 # Directories
@@ -33,18 +33,22 @@ $(EXEC): $(OBJ_FILES)
 	$(CC) $(OBJ_FILES) -o $(EXEC) $(LDFLAGS)
 
 # Compile the object files from the source files
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(OBJ_DIR)/%.o: $(MOCK_DIR)/%.c
+$(OBJ_DIR)/%.o: $(MOCK_DIR)/%.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(OBJ_DIR)/%.o: $(TEST_DIR)/%.c
+$(OBJ_DIR)/%.o: $(TEST_DIR)/%.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
+
+# Ensure object directory exists before compiling
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
 
 # Clean up object files and the executable
 clean:
-	rm -rf $(OBJ_DIR)/*.o $(EXEC)
+	rm -rf $(OBJ_DIR)/*.o $(EXEC) $(OBJ_DIR)
 
 # Phony targets
 .PHONY: all clean

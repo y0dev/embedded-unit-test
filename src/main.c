@@ -6,10 +6,10 @@
 
 int main(void) {
     // Here you can call test functions or use your components in a simple test environment.
-    test_shared_memory();
-    test_uart();
-    test_registers();
-    test_gpio();
+    test_shared_memory_operations();
+    test_uart_operations();
+    test_register_operations();
+    test_gpio_operations();
     test_external_communication();
 
     return 0;

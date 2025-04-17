@@ -1,5 +1,5 @@
 #include <assert.h>
-#include "mock/mock_gpio.h"
+#include "mock_gpio.h"
 
 /**
  * @brief Unit test for GPIO operations.

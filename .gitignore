@@ -43,3 +43,5 @@ desktop.ini
 
 # For Mac, ignore .DS_Store
 .DS_Store
+
+__pycache__

@@ -1,7 +1,28 @@
 import os
 import json
 import subprocess
+from dummy_data_gen import DummyDataGenerator
 
+def files_in_dir(dir_path):
+    return [f for f in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path, f))]
+
+def get_relative_file_paths(directory):
+    """
+    Gets all files in a directory and returns their relative paths.
+
+    Args:
+        directory: The path to the directory.
+
+    Returns:
+        A list of relative file paths.
+    """
+    file_paths = []
+    for root, _, files in os.walk(directory):
+        for file in files:
+            absolute_path = os.path.join(root, file)
+            relative_path = os.path.relpath(absolute_path, directory)
+            file_paths.append(relative_path)
+    return file_paths
 class EmbeddedTestAutomation:
     def __init__(self, config_json):
         """
@@ -76,3 +97,16 @@ unsigned int mock_read_gpio(unsigned int pin) {
         with open("mock/gpio_mock.c", 'w') as file:
             file.write(gpio_mock_content)
         print("Created mock for GPIO.")
+
+if __name__ == "__main__":
+    uint_array = DummyDataGenerator.generate_unsigned_int_array(5)
+    ushort_array = DummyDataGenerator.generate_unsigned_short_array(5)
+    char_array = DummyDataGenerator.generate_char_array(10)
+    byte_array = DummyDataGenerator.generate_byte_array(10)
+
+    print("Unsigned Int Array:", uint_array)
+    print("Unsigned Short Array:", ushort_array)
+    print("Char Array:", char_array)
+    print("Byte Array:", byte_array)
+
+    print(get_relative_file_paths("unit_tests"))

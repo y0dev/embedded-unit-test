@@ -1,5 +1,6 @@
 #include <assert.h>
-#include "mock/mock_uart.h"
+#include "mock_uart.h"
+ #include <string.h>
 
 /**
  * @brief Unit test for UART operations.

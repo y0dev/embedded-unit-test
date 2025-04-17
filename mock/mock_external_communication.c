@@ -9,7 +9,7 @@
  *       with real network hardware.
  */
 
- #include "mock/mock_external_communication.h"
+ #include "mock_external_communication.h"
  #include <stdio.h>
  #include <string.h>
  

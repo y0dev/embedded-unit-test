@@ -7,7 +7,8 @@
  * @note The register functions are mocked for testing purposes only.
  */
 
- #include "mock/mock_register.h"
+ #include "mock_registers.h"
+ #include <stdio.h>
 
  unsigned int registers[REGISTER_COUNT] = {0}; ///< Array to represent hardware registers
  

@@ -7,8 +7,9 @@
  * @note The shared memory functions are mocked for testing purposes only.
  */
 
- #include "mock/mock_shared_memory.h"
+ #include "mock_shared_memory.h"
  #include <string.h>
+ #include <stdio.h>
  
  unsigned char shared_memory[SHARED_MEMORY_SIZE] = {0}; ///< Array to represent shared memory
  

@@ -1,5 +1,6 @@
 import os
 import json
+import argparse
 import subprocess
 from dummy_data_gen import DummyDataGenerator
 
@@ -34,14 +35,6 @@ class EmbeddedTestAutomation:
         else:
             self.config = config_json
         
-        self.directories = [
-            'src', 
-            'mock', 
-            'unit_tests', 
-            'include', 
-            'build', 
-            'bin'
-        ]
 
     def create_directories(self):
         """Create necessary directories for the project."""
@@ -52,61 +45,76 @@ class EmbeddedTestAutomation:
             else:
                 print(f"Directory already exists: {directory}")
 
-    def create_mock_files(self):
-        """Generate mock files based on the components defined in the configuration."""
-        if 'gpio' in self.config and self.config['gpio']:
-            self.create_gpio_mock()
-        if 'uart' in self.config and self.config['uart']:
-            self.create_uart_mock()
-        if 'shared_memory' in self.config and self.config['shared_memory']:
-            self.create_shared_memory_mock()
-        if 'registers' in self.config and self.config['registers']:
-            self.create_registers_mock()
+    def generate_subdir_mk(self, target_dir, source_dir='src', obj_root='obj'):
+        """
+        Generate a subdir.mk file listing C source and corresponding object files.
+        
+        Args:
+            target_dir: The directory to place the subdir.mk file in.
+            source_dir: The directory to scan for source files.
+            obj_root: The base directory where object files should be placed.
+        """
+        subdir_mk_path = os.path.join(target_dir, 'subdir.mk')
+        if not os.path.exists(target_dir):
+            os.makedirs(target_dir)
 
-    def create_registers_mock(self):
-        pass
+        c_sources = []
+        object_files = []
+
+        for root, _, files in os.walk(source_dir):
+            for file in files:
+                if file.endswith('.c'):
+                    src_rel_path = os.path.relpath(os.path.join(root, file), start=os.path.dirname(target_dir))
+                    c_sources.append(src_rel_path)
+
+                    rel_from_src = os.path.relpath(os.path.join(root, file), start=source_dir)
+                    obj_path = os.path.join(obj_root, source_dir, rel_from_src).replace('.c', '.o')
+                    obj_path = obj_path.replace('\\', '/')  # Normalize for Windows paths
+                    object_files.append(obj_path)
+
+        with open(subdir_mk_path, 'w') as f:
+            f.write("C_SRCS += \\\n")
+            for idx, src in enumerate(c_sources):
+                if idx < len(c_sources) - 1:
+                    f.write(f"\t{src} \\\n")
+                else:
+                    f.write(f"\t{src} \n")
+            f.write("\n\nOBJS += \\\n")
+            for idx, obj in enumerate(object_files):
+                if idx < len(object_files) - 1:
+                    f.write(f"\t{obj} \\\n")
+                else:
+                    f.write(f"\t{obj} \n")
+
+        print(f"Generated subdir.mk in: {subdir_mk_path}")
+
+
     
-    def create_uart_mock(self):
-        pass
-
-    def create_shared_memory_mock(self):
-        pass
-
-    def create_gpio_mock(self):
-        """Create mock functions for GPIO."""
-        gpio_mock_content = """
-#include "gpio.h"
-#include <stdio.h>
-
-unsigned int gpio_pins[GPIO_PIN_COUNT] = {0};  // Mock GPIO pin values
-
-void mock_write_gpio(unsigned int pin, unsigned int value) {
-    if (pin < GPIO_PIN_COUNT) {
-        gpio_pins[pin] = value;
-        printf("GPIO Pin %u set to %u\\n", pin, value);
-    }
-}
-
-unsigned int mock_read_gpio(unsigned int pin) {
-    if (pin < GPIO_PIN_COUNT) {
-        return gpio_pins[pin];
-    }
-    return 0;
-}
-"""
-        with open("mock/gpio_mock.c", 'w') as file:
-            file.write(gpio_mock_content)
-        print("Created mock for GPIO.")
 
 if __name__ == "__main__":
-    uint_array = DummyDataGenerator.generate_unsigned_int_array(5)
-    ushort_array = DummyDataGenerator.generate_unsigned_short_array(5)
-    char_array = DummyDataGenerator.generate_char_array(10)
-    byte_array = DummyDataGenerator.generate_byte_array(10)
+    parser = argparse.ArgumentParser(description="Generate subdir.mk and optionally dummy test data.")
+    parser.add_argument('--source', type=str, default='src', help='Source directory to scan for .c files')
+    parser.add_argument('--target', type=str, default='.', help='Target directory to write subdir.mk to')
+    parser.add_argument('--obj-root', type=str, default='obj', help='Root directory where object files should be placed')
+    parser.add_argument('--generate-data', action='store_true', help='Generate dummy data arrays')
 
-    print("Unsigned Int Array:", uint_array)
-    print("Unsigned Short Array:", ushort_array)
-    print("Char Array:", char_array)
-    print("Byte Array:", byte_array)
+    args = parser.parse_args()
+    config_json = None
+    with open('config.json', 'r') as json_file:
+        config_json = json.load(json_file)
 
-    print(get_relative_file_paths("unit_tests"))
+    tester = EmbeddedTestAutomation(config_json)
+    tester.generate_subdir_mk(target_dir=args.target, source_dir=args.source, obj_root=args.obj_root)
+
+    if args.generate_data:
+        uint_array = DummyDataGenerator.generate_unsigned_int_array(5)
+        ushort_array = DummyDataGenerator.generate_unsigned_short_array(5)
+        char_array = DummyDataGenerator.generate_char_array(10)
+        byte_array = DummyDataGenerator.generate_byte_array(10)
+
+        print("Unsigned Int Array:", uint_array)
+        print("Unsigned Short Array:", ushort_array)
+        print("Char Array:", char_array)
+        print("Byte Array:", byte_array)
+
+    print("Relative test paths:", get_relative_file_paths("unit_tests"))

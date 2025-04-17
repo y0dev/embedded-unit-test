@@ -68,10 +68,20 @@ class DummyDataGenerator:
     @staticmethod
     def to_c_array(array, var_type, var_name):
         """
-        Converts a list of values to a C-style array declaration.
+        Converts a list of values to a C-style array declaration with 16 values per line.
+        
+        :param array: List of string representations of values (e.g., ["0x01", "0x02", ...]).
+        :param var_type: The C type of the array (e.g., "uint32_t").
+        :param var_name: The name of the variable.
+        :return: A formatted C array as a string.
         """
-        formatted_values = ', '.join(array)
-        return f"{var_type} {var_name}[] = {{ {formatted_values} }};"
+        values_per_line = 8
+        lines = []
+        for i in range(0, len(array), values_per_line):
+            line = ', '.join(array[i:i + values_per_line])
+            lines.append(f"    {line}")
+        joined_lines = ",\n".join(lines)
+        return f"const {var_type} {var_name}[{len(array)}] = {{\n{joined_lines}\n}};\n"
 
     @staticmethod
     def to_c_char_array_string(char_string, var_name):
@@ -79,4 +89,4 @@ class DummyDataGenerator:
         Formats a C-style null-terminated char array using string literals.
         """
         escaped = char_string.encode('unicode_escape').decode('utf-8')
-        return f'char {var_name}[] = "{escaped}";'
+        return f'const char {var_name}[{len(char_string) + 1}] = "{escaped}";\n'

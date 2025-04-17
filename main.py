@@ -88,33 +88,69 @@ class EmbeddedTestAutomation:
 
         print(f"Generated subdir.mk in: {subdir_mk_path}")
 
+    def generate_dummy_data(self, output_path='dummy_data.h'):
+        if 'data' not in self.config:
+            print("No data section found in config.")
+            return
+        output_path = os.path.join('unit_tests', output_path)
+        if os.path.exists(output_path):
+            confirm = input(f"{output_path} exists. Overwrite? (y/n): ").lower()
+            if confirm != 'y':
+                print("Aborting.")
+                return
 
+        data_config = self.config['data']
+        lines = ["#ifndef DUMMY_DATA_H", "#define DUMMY_DATA_H", "\n", "#include <stdint.h>", "\n"]
+
+        for props in data_config:
+            name = props.get('name', None)
+            size = props.get('size', None)
+            dtype = props.get('type', None)
+            min_val = props.get("min", None)
+            max_val = props.get("max", None)
+
+            print(props)
+
+            if not name or not size or not dtype:
+                print(f"Missing a field for {props}")
+                continue
+
+            if dtype == 'uint':
+                data = DummyDataGenerator.generate_unsigned_int_array_range(size, min_val or 0, max_val or 0xFFFFFFFF)
+                lines.append(DummyDataGenerator.to_c_array(data, 'uint32_t', name))
+            elif dtype == 'ushort':
+                data = DummyDataGenerator.generate_unsigned_short_array_range(size, min_val or 0, max_val or 0xFFFF)
+                lines.append(DummyDataGenerator.to_c_array(data, 'uint16_t', name))
+            elif dtype == 'char':
+                data = DummyDataGenerator.generate_char_array(size)
+                lines.append(DummyDataGenerator.to_c_char_array_string(data, name))
+            elif dtype == 'byte':
+                data = DummyDataGenerator.generate_char_array_as_hex(size)
+                lines.append(DummyDataGenerator.to_c_array(data, 'uint8_t', name))
+            else:
+                print(f"Unknown data type: {dtype}")
+                continue
+
+        lines.append("\n#endif // DUMMY_DATA_H")
+
+        with open(output_path, 'w') as f:
+            f.write('\n'.join(lines))
+
+        print(f"Generated dummy data in {output_path}")
     
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate subdir.mk and optionally dummy test data.")
-    parser.add_argument('--source', type=str, default='src', help='Source directory to scan for .c files')
-    parser.add_argument('--target', type=str, default='.', help='Target directory to write subdir.mk to')
-    parser.add_argument('--obj-root', type=str, default='obj', help='Root directory where object files should be placed')
-    parser.add_argument('--generate-data', action='store_true', help='Generate dummy data arrays')
-
+    parser = argparse.ArgumentParser(description="Generate dummy data files based on config.")
+    parser.add_argument('--config', type=str, required=True, help='Path to the config JSON file')
+    parser.add_argument('--output', type=str, default='dummy_data.h', help='Output header file')
+    
     args = parser.parse_args()
-    config_json = None
-    with open('config.json', 'r') as json_file:
-        config_json = json.load(json_file)
 
-    tester = EmbeddedTestAutomation(config_json)
-    tester.generate_subdir_mk(target_dir=args.target, source_dir=args.source, obj_root=args.obj_root)
+    with open(args.config, 'r') as f:
+        config_data = json.load(f)
 
-    if args.generate_data:
-        uint_array = DummyDataGenerator.generate_unsigned_int_array(5)
-        ushort_array = DummyDataGenerator.generate_unsigned_short_array(5)
-        char_array = DummyDataGenerator.generate_char_array(10)
-        byte_array = DummyDataGenerator.generate_byte_array(10)
+    tester = EmbeddedTestAutomation(config_data)
+    tester.generate_dummy_data(output_path=args.output)
 
-        print("Unsigned Int Array:", uint_array)
-        print("Unsigned Short Array:", ushort_array)
-        print("Char Array:", char_array)
-        print("Byte Array:", byte_array)
-
-    print("Relative test paths:", get_relative_file_paths("unit_tests"))
+    # print("Relative test paths:", get_relative_file_paths("unit_tests"))

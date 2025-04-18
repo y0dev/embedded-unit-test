@@ -35,6 +35,7 @@ class EmbeddedTestAutomation:
         else:
             self.config = config_json
         
+        self.generate_test_subdir_mk()
 
     def create_directories(self):
         """Create necessary directories for the project."""
@@ -45,14 +46,16 @@ class EmbeddedTestAutomation:
             else:
                 print(f"Directory already exists: {directory}")
 
-    def generate_subdir_mk(self, target_dir, source_dir='src', obj_root='obj'):
+    def generate_subdir_mk(self, target_dir, source_dir='src', obj_root='obj', project_root='.'):
         """
-        Generate a subdir.mk file listing C source and corresponding object files.
-        
+        Generate a subdir.mk file listing C source and corresponding object files,
+        and include paths for headers relative to the project root.
+
         Args:
-            target_dir: The directory to place the subdir.mk file in.
-            source_dir: The directory to scan for source files.
-            obj_root: The base directory where object files should be placed.
+            target_dir: Directory to place the subdir.mk file in.
+            source_dir: Directory to scan for source files.
+            obj_root: Base directory where object files are placed.
+            project_root: Path where the top-level Makefile resides.
         """
         subdir_mk_path = os.path.join(target_dir, 'subdir.mk')
         if not os.path.exists(target_dir):
@@ -60,38 +63,112 @@ class EmbeddedTestAutomation:
 
         c_sources = []
         object_files = []
+        header_dirs = set()
 
         for root, _, files in os.walk(source_dir):
             for file in files:
+                full_path = os.path.join(root, file)
                 if file.endswith('.c'):
-                    src_rel_path = os.path.relpath(os.path.join(root, file), start=os.path.dirname(target_dir))
+                    src_rel_path = os.path.relpath(full_path, start=project_root)
                     c_sources.append(src_rel_path)
 
-                    rel_from_src = os.path.relpath(os.path.join(root, file), start=source_dir)
+                    rel_from_src = os.path.relpath(full_path, start=source_dir)
                     obj_path = os.path.join(obj_root, source_dir, rel_from_src).replace('.c', '.o')
-                    obj_path = obj_path.replace('\\', '/')  # Normalize for Windows paths
+                    obj_path = obj_path.replace('\\', '/')  # Normalize Windows paths
                     object_files.append(obj_path)
+
+                elif file.endswith('.h'):
+                    hdr_rel_path = os.path.relpath(root, start=project_root)
+                    header_dirs.add(hdr_rel_path)
 
         with open(subdir_mk_path, 'w') as f:
             f.write("C_SRCS += \\\n")
             for idx, src in enumerate(c_sources):
-                if idx < len(c_sources) - 1:
-                    f.write(f"\t{src} \\\n")
-                else:
-                    f.write(f"\t{src} \n")
+                f.write(f"\t{src} {'\\' if idx < len(c_sources) - 1 else ''}\n")
+
             f.write("\n\nOBJS += \\\n")
             for idx, obj in enumerate(object_files):
-                if idx < len(object_files) - 1:
-                    f.write(f"\t{obj} \\\n")
-                else:
-                    f.write(f"\t{obj} \n")
+                f.write(f"\t{obj} {'\\' if idx < len(object_files) - 1 else ''}\n")
+
+            if header_dirs:
+                f.write("\n\nINC_DIR += \\\n")
+                for idx, hdr in enumerate(sorted(header_dirs)):
+                    f.write(f"\t-I./{hdr} {'\\' if idx < len(header_dirs) - 1 else ''}\n")
+                
+                f.write("\n\nTEST_DIR += \\\n")
+                for idx, hdr in enumerate(sorted(header_dirs)):
+                    f.write(f"\t{hdr} {'\\' if idx < len(header_dirs) - 1 else ''}\n")
 
         print(f"Generated subdir.mk in: {subdir_mk_path}")
+        return subdir_mk_path
+
+
+    def generate_test_subdir_mk(self):
+        if 'tests' not in self.config:
+            print("No 'tests' section found in config.")
+            return
+        
+        test_config = self.config['tests']
+        subdir_paths = []
+        for props in test_config:
+            tpath = props.get('path', None)
+            if not tpath:
+                print("Path does not exist")
+                continue
+
+            # Check if path exist already
+            if not os.path.exists(tpath):
+                os.makedirs(tpath, exist_ok=True)
+            
+            subdir_path = self.generate_subdir_mk(tpath, source_dir=tpath)
+            subdir_paths.append(subdir_path)
+
+        # Add the paths to subdir.mk to the Makefile
+        makefile_path = self.config.get('makefile_path', './Makefile')
+        self.update_makefile_with_subdirs(makefile_path, subdir_paths)
+
+    def update_makefile_with_subdirs(self,makefile_path, subdir_paths):
+        """
+        Adds `-include` lines for each subdir.mk in the given paths to the Makefile.
+
+        :param makefile_path: Path to the Makefile to modify.
+        :param subdir_paths: List of directories where subdir.mk files exist.
+        """
+        include_lines = [f"-include {path}" for path in subdir_paths]
+        include_block = "\n".join(include_lines) + "\n"
+
+        # Read existing Makefile content
+        with open(makefile_path, 'r') as f:
+            lines = f.readlines()
+
+        # Find the index to insert after the flags (after TEST_MAIN_DIR )
+        insert_index = None
+        for i, line in enumerate(lines):
+            if line.strip().startswith("TEST_MAIN_DIR"):
+                insert_index = i + 1
+                break
+        
+        if insert_index is None:
+            raise RuntimeError("Could not find TEST_MAIN_DIR definition to insert after.")
+
+        # Check if the include block is already there
+        if any('-include' in line for line in lines):
+            print("Makefile already includes subdir.mk lines. Skipping auto-insertion.")
+            return
+        
+        # Insert include block
+        lines.insert(insert_index, "\n# Automatically included subdir.mk files\n" + include_block)
+
+        with open(makefile_path, 'w') as file:
+            file.write("\n# Automatically included subdir.mk files\n")
+            file.writelines(lines)
+            print("Inserted subdir.mk includes into Makefile.")
 
     def generate_dummy_data(self, output_path='dummy_data.h'):
         if 'data' not in self.config:
-            print("No data section found in config.")
+            print("No 'data' section found in config.")
             return
+        
         output_path = os.path.join('unit_tests', output_path)
         if os.path.exists(output_path):
             confirm = input(f"{output_path} exists. Overwrite? (y/n): ").lower()

@@ -4,5 +4,39 @@
     { "name": "shorts", "type": "ushort", "size": 5, "min": 100, "max": 500 },
     { "name": "chars", "type": "char", "size": 8 },
     { "name": "bytes", "type": "byte", "size": 6 }
+  ],
+  "tests": [
+    {
+      "name": "external_communication",
+      "path": "unit_tests/external_communication"
+    },
+    {
+      "name": "gpio",
+      "path": "unit_tests/gpio"
+    },
+    {
+      "name": "interrupt",
+      "path": "unit_tests/interrupt"
+    },
+    {
+      "name": "mailbox",
+      "path": "unit_tests/mailbox"
+    },
+    {
+      "name": "registers",
+      "path": "unit_tests/registers"
+    },
+    {
+      "name": "shared_memory",
+      "path": "unit_tests/shared_memory"
+    },
+    {
+      "name": "system_monitor",
+      "path": "unit_tests/system_monitor"
+    },
+    {
+      "name": "uart",
+      "path": "unit_tests/uart"
+    }
   ]
 }

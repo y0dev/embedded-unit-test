@@ -47,7 +47,8 @@ EXEC = test_app
 
 # Default target to compile and run tests
 all: $(EXEC)
-	./$(EXEC)
+	@$(MKDIR_P) log
+	./$(EXEC) >> log/test_log.log 2>&1
 
 # Compile the main executable and link the object files
 $(EXEC): $(OBJ_FILES)

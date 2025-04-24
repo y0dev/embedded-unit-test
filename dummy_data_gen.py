@@ -153,25 +153,6 @@ class DummyDataGenerator:
         else:
             return [DummyDataGenerator.generate_multidimensional_uint64_array(dimensions[1:], min_val, max_val)
                     for _ in range(dimensions[0])]
-
-    
-    @staticmethod
-    def to_c_array(array, var_type, var_name):
-        """
-        Converts a list of values to a C-style array declaration with 16 values per line.
-        
-        :param array: List of string representations of values (e.g., ["0x01", "0x02", ...]).
-        :param var_type: The C type of the array (e.g., "uint32_t").
-        :param var_name: The name of the variable.
-        :return: A formatted C array as a string.
-        """
-        values_per_line = 8
-        lines = []
-        for i in range(0, len(array), values_per_line):
-            line = ', '.join(array[i:i + values_per_line])
-            lines.append(f"    {line}")
-        joined_lines = ",\n".join(lines)
-        return f"const {var_type} {var_name}[{len(array)}] = {{\n{joined_lines}\n}};\n"
     
     @staticmethod
     def generate_multidimensional_uint32_array(dimensions, min_val=0, max_val=0xFFFFFFFF):
@@ -196,11 +177,30 @@ class DummyDataGenerator:
         """
         escaped = char_string.encode('unicode_escape').decode('utf-8')
         return f'const char {var_name}[{len(char_string) + 1}] = "{escaped}";\n'
+
+    @staticmethod
+    def to_c_array(array, var_type, var_name):
+        """
+        Converts a list of values to a C-style array declaration with 16 values per line.
+        
+        :param array: List of string representations of values (e.g., ["0x01", "0x02", ...]).
+        :param var_type: The C type of the array (e.g., "uint32_t").
+        :param var_name: The name of the variable.
+        :return: A formatted C array as a string.
+        """
+        values_per_line = 8
+        lines = []
+        for i in range(0, len(array), values_per_line):
+            line = ', '.join(array[i:i + values_per_line])
+            lines.append(f"    {line}")
+        joined_lines = ",\n".join(lines)
+        return f"const {var_type} {var_name}[{len(array)}] = {{\n{joined_lines}\n}};\n"
     
     @staticmethod
     def to_c_multidimensional_array(array, var_type, var_name):
         """
-        Converts a nested list (multidimensional array) to a C-style array declaration.
+        Converts a nested list (multidimensional array) to a C-style array declaration
+        with 16 values per line in the innermost arrays.
         
         :param array: Nested list of values (e.g., [[0x01, 0x02], [0x03, 0x04]])
         :param var_type: C type (e.g., "uint16_t", "uint32_t", "uint64_t")
@@ -217,9 +217,16 @@ class DummyDataGenerator:
         def format_array(arr, indent=1):
             pad = '    ' * indent
             if isinstance(arr[0], list):
-                return "{\n" + ",\n".join(pad + format_array(sub, indent + 1) for sub in arr) + "\n" + ('    ' * (indent - 1)) + "}"
+                return "{\n" + ",\n".join(
+                    pad + format_array(sub, indent + 1) for sub in arr
+                ) + "\n" + ('    ' * (indent - 1)) + "}"
             else:
-                return "{" + ", ".join(arr) + "}"
+                lines = []
+                values_per_line = 16
+                for i in range(0, len(arr), values_per_line):
+                    line = ', '.join(arr[i:i+values_per_line])
+                    lines.append(pad + line)
+                return "{\n" + ",\n".join(lines) + "\n" + ('    ' * (indent - 1)) + "}"
 
         dims = format_dimensions(array)
         formatted = format_array(array)

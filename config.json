@@ -23,7 +23,11 @@
   "tests": [
     {
       "name": "external_communication",
-      "path": "unit_tests/external_communication"
+      "path": "unit_tests/external_communication",
+      "makefile_path": "external_communication.mk",
+      "macros": [
+        "MACRO_1"
+      ]
     },
     {
       "name": "gpio",

@@ -2,6 +2,7 @@ import os
 import json
 import argparse
 import subprocess
+from datetime import datetime
 from dummy_data_gen import DummyDataGenerator
 
 def files_in_dir(dir_path):
@@ -46,7 +47,7 @@ class EmbeddedTestAutomation:
             else:
                 print(f"Directory already exists: {directory}")
 
-    def generate_subdir_mk(self, target_dir, source_dir='src', obj_root='obj', project_root='.'):
+    def generate_subdir_mk(self, target_dir, source_dir='src', obj_root='obj', project_root='.', macros=None):
         """
         Generate a subdir.mk file listing C source and corresponding object files,
         and include paths for headers relative to the project root.
@@ -99,6 +100,21 @@ class EmbeddedTestAutomation:
                 for idx, hdr in enumerate(sorted(header_dirs)):
                     f.write(f"\t{hdr} {'\\' if idx < len(header_dirs) - 1 else ''}\n")
 
+            if macros:
+                f.write("\n\nMACROS += \\\n")
+                current_line = "\t"
+                for i, macro in enumerate(macros):
+                    formatted_macro = f"-D{macro}"
+                    # Check if adding the macro would exceed 72 characters
+                    if len(current_line) + len(formatted_macro) + 1 > 72:
+                        f.write(current_line.rstrip() + " \\\n")
+                        current_line = "\t" + formatted_macro + " "
+                    else:
+                        current_line += formatted_macro + " "
+                # Write the last line without trailing backslash
+                f.write(current_line.rstrip() + "\n")
+
+
         print(f"Generated subdir.mk in: {subdir_mk_path}")
         return subdir_mk_path
 
@@ -107,25 +123,24 @@ class EmbeddedTestAutomation:
         if 'tests' not in self.config:
             print("No 'tests' section found in config.")
             return
-        
+
         test_config = self.config['tests']
-        subdir_paths = []
+
         for props in test_config:
-            tpath = props.get('path', None)
-            if not tpath:
-                print("Path does not exist")
+            tpath = props.get('path')
+            makefile_path = props.get('makefile_path')
+            macros = props.get('macros', [])  # <- list of macro flags, like ["DEBUG", "FEATURE_X=1"]
+            if not tpath or not makefile_path:
+                print(f"Missing 'path' or 'makefile_path' in test config: {props}")
                 continue
 
-            # Check if path exist already
             if not os.path.exists(tpath):
                 os.makedirs(tpath, exist_ok=True)
-            
-            subdir_path = self.generate_subdir_mk(tpath, source_dir=tpath)
-            subdir_paths.append(subdir_path)
 
-        # Add the paths to subdir.mk to the Makefile
-        makefile_path = self.config.get('makefile_path', './Makefile')
-        self.update_makefile_with_subdirs(makefile_path, subdir_paths)
+            subdir_path = self.generate_subdir_mk(tpath, source_dir=tpath, macros=macros)
+            full_makefile_path = os.path.join(tpath, makefile_path)
+
+            self.update_makefile_with_subdirs(full_makefile_path, [subdir_path])
 
     def update_makefile_with_subdirs(self,makefile_path, subdir_paths):
         """
@@ -239,7 +254,43 @@ class EmbeddedTestAutomation:
 
         print(f"Generated dummy data in {output_path}")
     
+    def run_makefile_and_log(self, makefile_path, make_target='all'):
+        """
+        Runs the specified Makefile and logs output to a timestamped log file
+        inside the logs/YYYY/MM/DD directory.
 
+        :param makefile_path: Path to the Makefile to run.
+        :param make_target: The make target to run (default is 'all').
+        """
+        if not os.path.exists(makefile_path):
+            print(f"Makefile not found: {makefile_path}")
+            return
+
+        makefile_dir = os.path.dirname(makefile_path)
+        makefile_name = os.path.basename(makefile_path).replace('.mk', '').replace('Makefile', 'main')
+
+        timestamp = datetime.now()
+        log_dir = os.path.join('logs', timestamp.strftime('%Y'), timestamp.strftime('%m'), timestamp.strftime('%d'))
+        os.makedirs(log_dir, exist_ok=True)
+        log_filename = f"{timestamp.strftime('%M%S')}_{makefile_name}.txt"
+        log_path = os.path.join(log_dir, log_filename)
+
+        try:
+            print(f"Running make in {makefile_dir} and logging to {log_path}...")
+            with open(log_path, 'w') as log_file:
+                result = subprocess.run(
+                    ['make', '-f', makefile_path, make_target],
+                    cwd=makefile_dir,
+                    stdout=log_file,
+                    stderr=subprocess.STDOUT,
+                    check=False  # Don't raise exception on non-zero exit
+                )
+                if result.returncode == 0:
+                    print("Make completed successfully.")
+                else:
+                    print(f"Make failed with exit code {result.returncode}. See log: {log_path}")
+        except Exception as e:
+            print(f"Error running make: {e}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate dummy data files based on config.")

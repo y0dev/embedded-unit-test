@@ -3,7 +3,22 @@
     { "name": "ints", "type": "uint", "size": 10 },
     { "name": "shorts", "type": "ushort", "size": 5, "min": 100, "max": 500 },
     { "name": "chars", "type": "char", "size": 8 },
-    { "name": "bytes", "type": "byte", "size": 6 }
+    { "name": "bytes", "type": "byte", "size": 6 },
+    { "name": "multi_ints", "type": "uint", "size": [3, 4] },
+    {
+      "name": "multi_shorts",
+      "type": "ushort",
+      "size": [2, 3],
+      "min": 50,
+      "max": 150
+    },
+    {
+      "name": "multi_ulongs",
+      "type": "ulong",
+      "size": [2, 2],
+      "min": 1000,
+      "max": 10000
+    }
   ],
   "tests": [
     {

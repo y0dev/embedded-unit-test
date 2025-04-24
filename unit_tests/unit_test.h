@@ -4,6 +4,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/*
+ * Note: 
+ *       - Use ASSERT when a test cannot continue safely.
+ *       - Use EXPECT when a test can continue, even if the check fails.
+*/
+
 extern int totalTested;
 extern int totalPassed;
 extern int totalFailed;
@@ -225,6 +231,52 @@ extern int totalFailed;
 #define AssertStrLT(x, y) AssertStr(x, y,  <, >=)
 #define AssertStrGE(x, y) AssertStr(x, y, >=,  <)
 #define AssertStrLE(x, y) AssertStr(x, y, <=,  >)
+
+
+#define Expect(test, description, result)                                      \
+    do {                                                                       \
+        totalTested++;                                                         \
+        if (!(test)) {                                                         \
+            totalFailed++;                                                     \
+            printf("\nEXPECT FAIL - %s line %d:", __FILE__, __LINE__);         \
+            fputs("\n    expected: ", stdout); printf description;             \
+            fputs("\n    result:   ", stdout); printf result; fputs("\n\n", stdout); \
+        } else {                                                               \
+            totalPassed++;                                                    \
+            printf("\nEXPECT PASS - %s line %d:", __FILE__, __LINE__);         \
+            fputs("\n    Description: ", stdout); printf description;          \
+            fputs("\n    result:     ", stdout); printf result; fputs("\n\n", stdout); \
+        }                                                                      \
+        fflush(stdout);                                                        \
+    } while (0)
+
+#define ExpectTrue(x)    Expect( (x), ("%s is true",     #x), (#x " => FALSE"))
+#define ExpectFalse(x)   Expect(!(x), ("%s is false",    #x), (#x " => TRUE"))
+#define ExpectNotNull(x) Expect( (x), ("%s is not null", #x), (#x " => NULL"))
+
+#define ExpectNull(x) do {                                                    \
+    PEDANTIC_EXTENSION void* _x = (void*)(x);                                  \
+    Expect(!_x, ("%s is null", #x), (#x " => %p", _x));                         \
+} while(0)
+
+#define ExpectInt(x, y, op, er)                                               \
+    do {                                                                      \
+        totalTested++;                                                        \
+        int _x = (int)(x);                                                    \
+        int _y = (int)(y);                                                    \
+        if (!(_x op _y)) {                                                    \
+            totalFailed++;                                                    \
+            printf("\nEXPECT FAIL - %s line %d:", __FILE__, __LINE__);        \
+            printf("\n    expected: %s " #op " %s", #x, #y);                   \
+            printf("\n    result:   %d " #er " %d\n\n", _x, _y);               \
+        } else {                                                              \
+            totalPassed++;                                                    \
+            printf("\nEXPECT PASS - %s line %d:", __FILE__, __LINE__);        \
+            printf("\n    %s " #op " %s => %d " #er " %d\n\n", #x, #y, _x, _y); \
+        }                                                                     \
+        fflush(stdout);                                                       \
+    } while (0)
+
 
 void run_tests(void);
 void print_test_results(void);

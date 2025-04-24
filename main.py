@@ -192,21 +192,45 @@ class EmbeddedTestAutomation:
                 print(f"Missing a field for {props}")
                 continue
 
+            # Detect multidimensional shape
+            is_multi = isinstance(size, (list, tuple))
+
             if dtype == 'uint':
-                data = DummyDataGenerator.generate_unsigned_int_array_range(size, min_val or 0, max_val or 0xFFFFFFFF)
-                lines.append(DummyDataGenerator.to_c_array(data, 'uint32_t', name))
+                if is_multi:
+                    data = DummyDataGenerator.generate_multidimensional_uint32_array(size, min_val or 0, max_val or 0xFFFFFFFF)
+                    lines.append(DummyDataGenerator.to_c_multidimensional_array(data, 'uint32_t', name))
+                else:
+                    data = DummyDataGenerator.generate_unsigned_int_array_range(size, min_val or 0, max_val or 0xFFFFFFFF)
+                    lines.append(DummyDataGenerator.to_c_array(data, 'uint32_t', name))
+
             elif dtype == 'ushort':
-                data = DummyDataGenerator.generate_unsigned_short_array_range(size, min_val or 0, max_val or 0xFFFF)
-                lines.append(DummyDataGenerator.to_c_array(data, 'uint16_t', name))
+                if is_multi:
+                    data = DummyDataGenerator.generate_multidimensional_uint16_array(size, min_val or 0, max_val or 0xFFFF)
+                    lines.append(DummyDataGenerator.to_c_multidimensional_array(data, 'uint16_t', name))
+                else:
+                    data = DummyDataGenerator.generate_unsigned_short_array_range(size, min_val or 0, max_val or 0xFFFF)
+                    lines.append(DummyDataGenerator.to_c_array(data, 'uint16_t', name))
+
+            elif dtype == 'ulong':
+                if is_multi:
+                    data = DummyDataGenerator.generate_multidimensional_uint64_array(size, min_val or 0, max_val or 0xFFFFFFFFFFFFFFFF)
+                    lines.append(DummyDataGenerator.to_c_multidimensional_array(data, 'uint64_t', name))
+                else:
+                    data = DummyDataGenerator.generate_unsigned_long_array_range(size, min_val or 0, max_val or 0xFFFFFFFFFFFFFFFF)
+                    lines.append(DummyDataGenerator.to_c_array(data, 'uint64_t', name))
+
             elif dtype == 'char':
                 data = DummyDataGenerator.generate_char_array(size)
                 lines.append(DummyDataGenerator.to_c_char_array_string(data, name))
+
             elif dtype == 'byte':
                 data = DummyDataGenerator.generate_char_array_as_hex(size)
                 lines.append(DummyDataGenerator.to_c_array(data, 'uint8_t', name))
+
             else:
                 print(f"Unknown data type: {dtype}")
                 continue
+
 
         lines.append("\n#endif // DUMMY_DATA_H")
 

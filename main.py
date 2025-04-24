@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import argparse
 import subprocess
@@ -256,41 +257,75 @@ class EmbeddedTestAutomation:
     
     def run_makefile_and_log(self, makefile_path, make_target='all'):
         """
-        Runs the specified Makefile and logs output to a timestamped log file
-        inside the logs/YYYY/MM/DD directory.
+        Runs 'make clean' and then 'make <target>' for the given Makefile.
+        Logs output to logs/YYYY/MM/DD/mmss_<makefile_name>.txt.
+        Ensures obj directory exists before building.
 
-        :param makefile_path: Path to the Makefile to run.
-        :param make_target: The make target to run (default is 'all').
+        :param makefile_path: Full path to the Makefile.
+        :param make_target: Target to build after clean (default: all).
         """
         if not os.path.exists(makefile_path):
             print(f"Makefile not found: {makefile_path}")
             return
 
+        makefile_path = os.path.abspath(makefile_path)
         makefile_dir = os.path.dirname(makefile_path)
         makefile_name = os.path.basename(makefile_path).replace('.mk', '').replace('Makefile', 'main')
 
-        timestamp = datetime.now()
-        log_dir = os.path.join('logs', timestamp.strftime('%Y'), timestamp.strftime('%m'), timestamp.strftime('%d'))
+        # Create log path
+        now = datetime.now()
+        log_dir = os.path.join('logs', now.strftime('%Y'), now.strftime('%m'), now.strftime('%d'))
         os.makedirs(log_dir, exist_ok=True)
-        log_filename = f"{timestamp.strftime('%M%S')}_{makefile_name}.txt"
-        log_path = os.path.join(log_dir, log_filename)
+        log_file = os.path.join(log_dir, f"{now.strftime('%M%S')}_{makefile_name}.txt")
+        
+        obj_dirs = []
 
-        try:
-            print(f"Running make in {makefile_dir} and logging to {log_path}...")
-            with open(log_path, 'w') as log_file:
+        # Try to prepare obj directory (if expected path used)
+        for root, dirs, files in os.walk(makefile_dir):
+            for file in files:
+                if file.endswith('.c'):
+                    rel_path = os.path.relpath(os.path.join(root, file), makefile_dir)
+                    obj_path = os.path.join(makefile_dir, 'obj', os.path.dirname(rel_path))
+                    os.makedirs(obj_path, exist_ok=True)
+
+        with open(log_file, 'w') as log:
+            def run_step(step):
+                print(f"Running: make {step}")
                 result = subprocess.run(
-                    ['make', '-f', makefile_path, make_target],
+                    ['make', '-f', makefile_path, step],
                     cwd=makefile_dir,
-                    stdout=log_file,
+                    stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
-                    check=False  # Don't raise exception on non-zero exit
+                    check=False
                 )
-                if result.returncode == 0:
-                    print("Make completed successfully.")
-                else:
-                    print(f"Make failed with exit code {result.returncode}. See log: {log_path}")
-        except Exception as e:
-            print(f"Error running make: {e}")
+                output = result.stdout.decode()
+                log.write(output)
+                return output
+
+            run_step('clean')
+            info_output = run_step('info')
+
+            # Parse object directories from info output
+            for line in info_output.splitlines():
+                if 'Object Dir' in line or 'OBJ_DIR' in line:
+                    match = re.search(r'Object Dir\s*:\s*(.*)', line)
+                    if match:
+                        dir_path = match.group(1).strip()
+                        if dir_path:
+                            obj_dirs.append(dir_path)
+                elif line.startswith('  ') and '.o' in line:
+                    for word in line.split():
+                        dir_path = os.path.dirname(word)
+                        if dir_path:
+                            obj_dirs.append(dir_path)
+
+            # Deduplicate and create obj dirs
+            for path in set(obj_dirs):
+                full_path = os.path.join(makefile_dir, path)
+                os.makedirs(full_path, exist_ok=True)
+            run_step(make_target)
+
+        print(f"Build steps complete. Output logged to: {log_file}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate dummy data files based on config.")
